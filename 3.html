@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style type="text/css">
+
+        body {
+            padding-top: 40px;
+            padding-left: 50px;
+
+        }
+
+        table th{
+            border-top: 1px solid #A8A8A8;
+            border-bottom: 1px solid #A8A8A8;
+            border-left: 1px solid #A8A8A8;
+            border-right: 1px solid #A8A8A8;
+            background-color: #F5F5F5;
+            border-radius: 7px;
+        }
+
+        a:link {
+            text-decoration:none;
+            color:#000000;
+        }		/* 未被访问的链接 */
+        a:visited {
+            color:#000000;
+            text-decoration:none;
+        }	/* 已被访问的链接 */
+        a:hover {
+            color:#FF00FF;
+        }	/* 鼠标指针移动到链接上 */
+        a:active {
+            color:#000000;
+            text-decoration:none;
+        }	/* 正在被点击的链接 */
+        input{
+            height: 30px;
+        }
+    </style>
+    <script src="https://unpkg.com/react@latest/dist/react.js"></script>
+    <script src="https://unpkg.com/react-dom@latest/dist/react-dom.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+
+
+</head>
+<body>
+<div id="container">
+    <!-- This element's contents will be replaced with your component. -->
+</div>
+
+<script type="text/jsx">
+
+    class ProductGenresRow extends React.Component {
+        render() {
+            return (<tr height="45"><th colSpan="3">{this.props.genres}</th></tr>);
+        }
+    }
+
+    class ProductRow extends React.Component {
+        render() {
+            var casts =
+                    <span>
+       <p><a href={this.props.product.casts[0].alt} target="_blank"title={this.props.product.casts[0].name}>{this.props.product.casts[0].name}</a></p>
+                      <p> <a href={this.props.product.casts[1].alt} target="_blank"title={this.props.product.casts[1].name}>{this.props.product.casts[1].name}</a></p>
+                      <p><a href={this.props.product.casts[2].alt} target="_blank"title={this.props.product.casts[2].name}>{this.props.product.casts[2].name}</a></p>
+       </span>;
+
+            return (
+                    <tr height="40">
+                        <td size="20"><center>{this.props.product.title}<br/><a href={this.props.product.alt} target="_blank"title={this.props.product.title}><img src={this.props.product.images.medium}/></a></center></td>
+                        <td ><center>{this.props.product.rating.average}</center></td>
+                        <td><center>{casts}</center></td>
+                    </tr>
+
+            );
+        }
+    }
+
+    class ProductTable extends React.Component {
+        render() {
+            var rows = [];
+            var lastgenres = null;
+            this.props.products.forEach((product) => {
+                if (product.title.indexOf(this.props.filterText) === -1) {
+                    return;
+                }
+                if (product.genres !== lastgenres) {
+                    rows.push(<ProductGenresRow genres={product.genres} key={product.genres} />);
+                }
+                rows.push(<ProductRow product={product} key={product.title} />);
+                lastgenres = product.genres;
+            });
+            return (<div>
+                        <table>
+                            <thead>
+                            <tr>
+                                <th width="300"height="30">电影</th>
+                                <th width="300"height="30">评分</th>
+                                <th width="300"height="30">主演</th>
+                            </tr>
+                            </thead>
+                            <tbody>{rows}</tbody>
+                        </table></div>
+            );
+        }
+    }
+
+    class SearchBar extends React.Component {
+        constructor(props) {
+            super(props);
+            this.handleFilterTextInputChange = this.handleFilterTextInputChange.bind(this);
+        }
+
+        handleFilterTextInputChange(e) {
+            this.props.onFilterTextInput(e.target.value);
+        }
+
+        render() {
+            return (
+                    <form>
+                        <input
+                                type="text"
+                                placeholder="Search..."
+                                value={this.props.filterText}
+                                onChange={this.handleFilterTextInputChange}
+                        />
+                    </form>
+            );
+        }
+    }
+
+    class FilterableProductTable extends React.Component {
+        constructor(props) {
+            super(props);
+            this.state = {
+                filterText: '',
+            };
+
+            this.handleFilterTextInput = this.handleFilterTextInput.bind(this);
+        }
+
+        handleFilterTextInput(filterText) {
+            this.setState({
+                filterText: filterText
+            });
+        }
+
+        render() {
+            return (
+                    <div>
+                        <SearchBar
+                                filterText={this.state.filterText}
+                                onFilterTextInput={this.handleFilterTextInput}
+                        />
+                        <ProductTable
+                                products={this.props.products}
+                                filterText={this.state.filterText}
+                        />
+                    </div>
+            );
+        }
+    }
+
+
+var PRODUCTS=[];
+
+    var jsonp = function (url, callback) {
+        if (typeof url=== 'undefined') {
+            throw 'the 1st param "url" missing';
+        }
+
+        if (typeof callback === 'undefined') {
+            throw 'the 2nd param "callback" missing';
+        }
+
+        var jsonpcallback = 'callback' + new Date().valueOf();
+        if (typeof callback !== 'string') {
+            window[jsonpcallback] = callback;
+            callback = jsonpcallback;
+        } else {
+            window[jsonpcallback] = function (data) {
+                eval(callback).call(window, data);
+            }
+        }
+
+        var script = document.createElement('script');
+        script.setAttribute('type', 'text/javascript');
+        script.setAttribute('src', url + (url.indexOf('?') == -1 ? '?' : '&') + 'callback=' + jsonpcallback);
+        var head = document.getElementsByTagName('head')[0];
+        head.appendChild(script);
+    };
+
+    jsonp('https://api.douban.com/v2/movie/in_theaters', function (data){
+        PRODUCTS = data.subjects;
+
+        ReactDOM.render(
+                <FilterableProductTable products={PRODUCTS} />,
+                document.getElementById('container')
+        );
+    });
+
+</script>
+
+</body>
+</html>
